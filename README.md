@@ -27,7 +27,7 @@
 按POWER键则会重新开始游戏。
 
 ## 四、具体思路
-![]()
+![](https://raw.githubusercontent.com/KaguraChen/51MCU_Tetris/main/Relation.png)
 如上图继承关系对Tetris进行封装，对外只留一个Tetris_Run()接口，其他功能则由内部函数实现。
 以下是相应函数代码的实现思路,请结合具体代码查看:
 
