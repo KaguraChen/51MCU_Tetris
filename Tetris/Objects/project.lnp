@@ -1,0 +1,12 @@
+".\Objects\main.obj",
+".\Objects\Delay1ms.obj",
+".\Objects\MatrixLED.obj",
+".\Objects\Timer0.obj",
+".\Objects\UART.obj",
+".\Objects\Int0.obj",
+".\Objects\IR.obj",
+".\Objects\Timer2.obj",
+".\Objects\Tetris.obj" 
+TO ".\Objects\project" 
+PRINT(".\Listings\project.m51") RAMSIZE(256) 
+DISABLEWARNING (16, 15) 

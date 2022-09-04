@@ -1,0 +1,143 @@
+C51 COMPILER V9.54   IR                                                                    08/10/2022 13:22:37 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE IR
+OBJECT MODULE PLACED IN .\Objects\IR.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE IR.c ROM(COMPACT) OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Li
+                    -stings\IR.lst) TABS(3) OBJECT(.\Objects\IR.obj)
+
+line level    source
+
+   1          #include <REGX52.H>
+   2          #include "Timer0.h"
+   3          #include "Int0.h"
+   4          
+   5          unsigned int IR_Time;
+   6          unsigned char IR_State;
+   7          
+   8          unsigned char IR_Data[4];
+   9          unsigned char IR_pData;
+  10          
+  11          unsigned char IR_DataFlag;
+  12          unsigned char IR_RepeatFlag;
+  13          unsigned char IR_Address;
+  14          unsigned char IR_Command;
+  15          
+  16          void IR_Init(void)
+  17          {
+  18   1         Timer0_Init();
+  19   1         Int0_Init();
+  20   1      }
+  21          
+  22          unsigned char IR_GetDataFlag(void)
+  23          {
+  24   1         if(IR_DataFlag)
+  25   1         {
+  26   2            IR_DataFlag=0;
+  27   2            return 1;
+  28   2         }
+  29   1         return 0;
+  30   1      }
+  31          
+  32          unsigned char IR_GetRepeatFlag(void)
+  33          {
+  34   1         if(IR_RepeatFlag)
+  35   1         {
+  36   2            IR_RepeatFlag=0;
+  37   2            return 1;
+  38   2         }
+  39   1         return 0;
+  40   1      }
+  41          
+  42          unsigned char IR_GetAddress(void)
+  43          {
+  44   1         return IR_Address;
+  45   1      }
+  46          
+  47          unsigned char IR_GetCommand(void)
+  48          {
+  49   1         return IR_Command;
+  50   1      }
+  51          
+  52          // 接受红外信号
+  53          void Int0_Routine(void) interrupt 0
+  54          {
+C51 COMPILER V9.54   IR                                                                    08/10/2022 13:22:37 PAGE 2   
+
+  55   1         if(IR_State==0)            
+  56   1         {
+  57   2            Timer0_SetCounter(0);   
+  58   2            Timer0_Run(1);       
+  59   2            IR_State=1;          
+  60   2         }
+  61   1         else if(IR_State==1)    
+  62   1         {
+  63   2            IR_Time=Timer0_GetCounter();
+  64   2            Timer0_SetCounter(0);   
+  65   2            
+  66   2            if(IR_Time>12442-500 && IR_Time<12442+500)
+  67   2            {
+  68   3               IR_State=2;       
+  69   3            }
+  70   2            else if(IR_Time>10368-500 && IR_Time<10368+500)
+  71   2            {
+  72   3               IR_RepeatFlag=1;  
+  73   3               Timer0_Run(0);    
+  74   3               IR_State=0;       
+  75   3            }
+  76   2            else              
+  77   2            {
+  78   3               IR_State=1;       
+  79   3            }
+  80   2         }
+  81   1         else if(IR_State==2)    
+  82   1         {
+  83   2            IR_Time=Timer0_GetCounter();  
+  84   2            Timer0_SetCounter(0);   
+  85   2            
+  86   2            if(IR_Time>1032-500 && IR_Time<1032+500)
+  87   2            {
+  88   3               IR_Data[IR_pData/8]&=~(0x01<<(IR_pData%8));  
+  89   3               IR_pData++;       
+  90   3            }
+  91   2            
+  92   2            else if(IR_Time>2074-500 && IR_Time<2074+500)
+  93   2            {
+  94   3               IR_Data[IR_pData/8]|=(0x01<<(IR_pData%8));   
+  95   3               IR_pData++; 
+  96   3            }
+  97   2            else           
+  98   2            {
+  99   3               IR_pData=0;
+ 100   3               IR_State=1;       
+ 101   3            }
+ 102   2            if(IR_pData>=32)     
+ 103   2            {
+ 104   3               IR_pData=0;       
+ 105   3               if((IR_Data[0]==~IR_Data[1]) && (IR_Data[2]==~IR_Data[3]))  
+ 106   3               {
+ 107   4                  IR_Address=IR_Data[0];  
+ 108   4                  IR_Command=IR_Data[2];
+ 109   4                  IR_DataFlag=1; 
+ 110   4               }
+ 111   3               Timer0_Run(0);    
+ 112   3               IR_State=0;       
+ 113   3            }
+ 114   2         }
+ 115   1      }
+
+C51 COMPILER V9.54   IR                                                                    08/10/2022 13:22:37 PAGE 3   
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    366    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     12    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

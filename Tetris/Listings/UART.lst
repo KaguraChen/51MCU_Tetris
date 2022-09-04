@@ -1,0 +1,54 @@
+C51 COMPILER V9.54   UART                                                                  08/10/2022 13:22:37 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE UART
+OBJECT MODULE PLACED IN .\Objects\UART.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE UART.c ROM(COMPACT) OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\
+                    -Listings\UART.lst) TABS(3) OBJECT(.\Objects\UART.obj)
+
+line level    source
+
+   1          #include <REGX52.H>
+   2          
+   3          void UART_Init()     //2400bps@11.0592MHz
+   4          {
+   5   1         PCON &= 0x7F;     //波特率不倍速
+   6   1         SCON = 0x50;      //8位数据,可变波特率
+   7   1         
+   8   1         TMOD &= 0x0F;     //清除定时器1模式位
+   9   1         TMOD |= 0x20;     //设定定时器1为8位自动重装方式
+  10   1         TL1 = 0xF4;    //设定定时初值
+  11   1         TH1 = 0xF4;    //设定定时器重装值
+  12   1         ET1 = 0;    //禁止定时器1中断
+  13   1         TR1 = 1;    //启动定时器1
+  14   1      }
+  15          
+  16          // 串口发送字节
+  17          void UART_SendByte(unsigned char Byte)
+  18          {
+  19   1         SBUF = Byte;
+  20   1         while (TI == 0);
+  21   1         TI = 0;
+  22   1      }
+  23          
+  24          // 串口发送字符串
+  25          void UART_SendString(const char *s)
+  26          {
+  27   1         unsigned char i;
+  28   1         for (i = 0; s[i] != '\0'; ++i) 
+  29   1            UART_SendByte(s[i]);
+  30   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     63    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       3
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

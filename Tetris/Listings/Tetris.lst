@@ -1,0 +1,303 @@
+C51 COMPILER V9.54   TETRIS                                                                09/04/2022 22:49:01 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE TETRIS
+OBJECT MODULE PLACED IN .\Objects\Tetris.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE Tetris.c ROM(COMPACT) OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(
+                    -.\Listings\Tetris.lst) TABS(3) OBJECT(.\Objects\Tetris.obj)
+
+line level    source
+
+   1          #include <REGX52.H>
+   2          #include "Delay1ms.h"
+   3          #include "Timer2.h"
+   4          #include "IR.h"
+   5          #include "MatrixLED.h"
+   6          #include "UART.h"
+   7          
+   8          unsigned char Command;  // 接收红外信号
+   9          
+  10          unsigned char Score; // 游戏分数
+  11          unsigned char Random;   // 随机生成俄罗斯方块
+  12          unsigned char Start; // 判断是否开始
+  13          
+  14          unsigned char idata LED_buf[8][8];  // 8x8 LED矩阵缓存
+  15          // 七种俄罗斯方块形状
+  16          char code Shape[7][4][2] = {
+  17             {{-1,-1}, {0,-1}, {0,0}, {1,0}}, // Z
+  18             {{-1,-1},{0,-1},{-1,0},{0,0}},   // O
+  19             {{-1,0},{0,0},{0,-1},{1,-1}},    // S
+  20             {{-1,0},{0,0},{0,-1},{1,0}},     // T
+  21             {{0,0},{0,-1},{0,-2},{0,-3}},    // I
+  22             {{-1,0},{0,0},{-1,-1},{-1,-2}},  // L
+  23             {{-1,0},{0,0},{0,-1},{0,-2}}     // J
+  24          };
+  25          
+  26          char temp_pos[2]; // 下落方块位置
+  27          char direction[2] = {0, -1};  // 下落方向
+  28          char idata temp_shape[4][2];  // 下落方块形状
+  29          unsigned char Type;  // 下落方块类型
+  30          
+  31          // 在指定位置设置一个俄罗斯方块
+  32          void  Set_Block(char c, char r, char Shape[4][2])
+  33          {
+  34   1         unsigned char i;
+  35   1         for (i = 0; i < 4; ++i)
+  36   1            LED_buf[c + Shape[i][0]][r + Shape[i][1]] = 1;  
+  37   1      }
+  38          
+  39          // 向指定方向移动方块
+  40          void Block_Move(char temp_pos[2], char temp_shape[4][2], char direction[2])
+  41          {
+  42   1         unsigned char i;
+  43   1         if (!Start)
+  44   1            return;
+  45   1         // 清除
+  46   1         for (i = 0; i < 4; ++i)
+  47   1            LED_buf[temp_pos[0] + temp_shape[i][0]][temp_pos[1] + temp_shape[i][1]] = 0;
+  48   1         temp_pos[0] += direction[0];
+  49   1         temp_pos[1] += direction[1];
+  50   1         // 下一位置点亮
+  51   1         for (i = 0; i < 4; ++i)
+  52   1            LED_buf[temp_pos[0] + temp_shape[i][0]][temp_pos[1] + temp_shape[i][1]] = 1;
+  53   1      }
+  54          
+C51 COMPILER V9.54   TETRIS                                                                09/04/2022 22:49:01 PAGE 2   
+
+  55          // 判断是否游戏结束
+  56          char End_Check(char temp_pos[2], char temp_shape[4][2])
+  57          {
+  58   1         unsigned char i;
+  59   1         for (i = 0; i < 4; ++i) 
+  60   1            if (LED_buf[temp_pos[0] + temp_shape[i][0]][temp_pos[1] + temp_shape[i][1]]) {
+  61   2               UART_SendString("Game over!!!\n");
+  62   2               Delay1ms(10);
+  63   2               UART_SendString("Press Power_key to replay.\n");
+  64   2               Start = 0;
+  65   2               return 0;
+  66   2            }
+  67   1         return 1;
+  68   1      }
+  69          
+  70          // 生成一个随机的新方块
+  71          void Generate_New_Block()
+  72          {
+  73   1         unsigned char i;
+  74   1         Type = Random % 7;   // 随机类型，Random依靠定时器
+  75   1         for (i = 0; i < 4; ++i) {
+  76   2            temp_shape[i][0] = Shape[Type][i][0];
+  77   2            temp_shape[i][1] = Shape[Type][i][1];
+  78   2         }
+  79   1         temp_pos[0] = 4;
+  80   1         temp_pos[1] = 7;
+  81   1         End_Check(temp_pos, temp_shape); // 判断新生成方块是否已满
+  82   1         Set_Block(4,7,Shape[Type]);
+  83   1      }
+  84          
+  85          // 判断是否在指定方向可以移动
+  86          char Move_Check(char temp_pos[2], char temp_shape[4][2], char direction[2])
+  87          {
+  88   1         char x, y, flag = 1, i;
+  89   1         x = temp_pos[0] + direction[0];
+  90   1         y = temp_pos[1] + direction[1];
+  91   1         // 清除
+  92   1         for (i = 0; i < 4; ++i)
+  93   1            LED_buf[temp_pos[0] + temp_shape[i][0]][temp_pos[1] + temp_shape[i][1]] = 0;
+  94   1         // 是否越界
+  95   1         for (i = 0; i < 4; ++i)
+  96   1            if (x + temp_shape[i][0] < 0 || x + temp_shape[i][0] > 7 ||
+  97   1               y + temp_shape[i][1] < 0 || y + temp_shape[i][1] > 7) 
+  98   1               flag = 0;
+  99   1         // 是否碰到其他方块
+ 100   1         for (i = 0; i < 4; ++i)
+ 101   1            if (LED_buf[x + temp_shape[i][0]][y + temp_shape[i][1]])
+ 102   1               flag = 0;
+ 103   1         // 点亮
+ 104   1         for (i = 0; i < 4; ++i)
+ 105   1            LED_buf[temp_pos[0] + temp_shape[i][0]][temp_pos[1] + temp_shape[i][1]] = 1;
+ 106   1         return flag;
+ 107   1      }
+ 108          
+ 109          // 判断行是否已满
+ 110          char Row_Check(unsigned char r)
+ 111          {
+ 112   1         unsigned char i;
+ 113   1         for (i = 0; i < 8; ++i)
+ 114   1            if (!LED_buf[i][r])
+ 115   1               return 0;
+ 116   1         return 1;
+C51 COMPILER V9.54   TETRIS                                                                09/04/2022 22:49:01 PAGE 3   
+
+ 117   1      }
+ 118          
+ 119          // 检查并且清除俄罗斯方块
+ 120          void Check_Clear()
+ 121          {
+ 122   1         unsigned char i, j, k, flag = 0;
+ 123   1         for (i = 0; i < 8;) {
+ 124   2            if (Row_Check(i)) {
+ 125   3               for (j = i + 1; j < 8; ++j)
+ 126   3                  for (k = 0; k < 8; ++k)
+ 127   3                     LED_buf[k][j - 1] = LED_buf[k][j];  // 将上面的方块移到下面
+ 128   3               Score += 10;
+ 129   3               flag = 1;
+ 130   3            }
+ 131   2            else 
+ 132   2               ++i;
+ 133   2         }
+ 134   1         if (flag) {
+ 135   2            // 发出信息
+ 136   2            UART_SendString("Your score is ");
+ 137   2            UART_SendByte('0' + Score / 100 % 10);
+ 138   2            UART_SendByte('0' + Score / 10 % 10);
+ 139   2            UART_SendByte('0' + Score % 10);
+ 140   2            UART_SendByte('.');
+ 141   2            UART_SendByte('\n');
+ 142   2         }
+ 143   1      }
+ 144          
+ 145          // 方块旋转
+ 146          void Block_Rotate(char temp_pos[2], char Shape[4][2])
+ 147          {
+ 148   1         char temp_shape[4][2], i, flag = 0;
+ 149   1         // 创建旋转后的形状
+ 150   1         for (i = 0; i< 4; ++i) {
+ 151   2            temp_shape[i][0] = -Shape[i][1];
+ 152   2            temp_shape[i][1] = Shape[i][0];
+ 153   2         }
+ 154   1         // 消除
+ 155   1         for (i = 0; i < 4; ++i)
+ 156   1            LED_buf[temp_pos[0] + Shape[i][0]][temp_pos[1] + Shape[i][1]] = 0;
+ 157   1         // 判断是否碰到其他方块
+ 158   1         for (i = 0; i < 4; ++i)
+ 159   1            if (!LED_buf[temp_pos[0] + temp_shape[i][0]][temp_pos[1] + temp_shape[i][1]])
+ 160   1               flag = 1;
+ 161   1         // 判断是否越界x
+ 162   1         for (i = 0; i < 4; ++i)
+ 163   1            if (temp_pos[0] + temp_shape[i][0] < 0 || temp_pos[0] + temp_shape[i][0] > 7 ||
+ 164   1               temp_pos[1] + temp_shape[i][1] < 0 || temp_pos[1] + temp_shape[i][1] > 7) 
+ 165   1               flag = 0;
+ 166   1         if (flag) {
+ 167   2            for (i = 0; i< 4; ++i) {
+ 168   3               // 将旋转后的形状赋给全局变量
+ 169   3               Shape[i][0] = temp_shape[i][0]; 
+ 170   3               Shape[i][1] = temp_shape[i][1];     
+ 171   3            }
+ 172   2            for (i = 0; i < 4; ++i)
+ 173   2                  LED_buf[temp_pos[0] + Shape[i][0]][temp_pos[1] + Shape[i][1]] = 1;
+ 174   2         }
+ 175   1         else
+ 176   1            // 点亮
+ 177   1            for (i = 0; i < 4; ++i)
+ 178   1               LED_buf[temp_pos[0] + Shape[i][0]][temp_pos[1] + Shape[i][1]] = 1;
+C51 COMPILER V9.54   TETRIS                                                                09/04/2022 22:49:01 PAGE 4   
+
+ 179   1      }
+ 180          
+ 181          // 方块加速下落
+ 182          void Block_Land(char temp_pos[2], char temp_shape[4][2])
+ 183          {
+ 184   1         unsigned char dir[2] = {0, -1};
+ 185   1         while (Move_Check(temp_pos, temp_shape, dir))
+ 186   1            Block_Move(temp_pos, temp_shape, dir);
+ 187   1      }
+ 188          
+ 189          // 主循环
+ 190          void Tetris_Run()
+ 191          {
+ 192   1         // 初始化
+ 193   1         Timer2_Init();
+ 194   1         IR_Init();
+ 195   1         Matrix_Init();
+ 196   1         UART_Init();
+ 197   1         // 开始信息
+ 198   1         Delay1ms(500);
+ 199   1         UART_SendString("Welcome to play Tetris!\n");
+ 200   1         Delay1ms(10);
+ 201   1         UART_SendString("Press Power_Key to start.\n");
+ 202   1         
+ 203   1         while(1)
+ 204   1         {
+ 205   2            if(IR_GetDataFlag() || IR_GetRepeatFlag())   
+ 206   2            {  
+ 207   3               Command=IR_GetCommand();
+ 208   3      
+ 209   3               switch (Command) {
+ 210   4                  case IR_4:  // 左移
+ 211   4                     direction[0] = -1;
+ 212   4                     direction[1] = 0;
+ 213   4                     if (Move_Check(temp_pos, temp_shape, direction))
+ 214   4                        Block_Move(temp_pos, temp_shape, direction);
+ 215   4                     break;
+ 216   4                  case IR_6:  // 右移
+ 217   4                     direction[0] = 1;
+ 218   4                     direction[1] = 0;
+ 219   4                     if (Move_Check(temp_pos, temp_shape, direction))
+ 220   4                        Block_Move(temp_pos, temp_shape, direction);
+ 221   4                     break;
+ 222   4                  case IR_POWER: // 游戏(重新)开始
+ 223   4                     if (!Start) {
+ 224   5                        unsigned char i, j;
+ 225   5                        // 清屏
+ 226   5                        for (i = 0; i < 8; ++i)
+ 227   5                           for (j = 0; j < 8; ++j)
+ 228   5                              LED_buf[i][j] = 0;
+ 229   5                        Generate_New_Block();
+ 230   5                        Start = 1;
+ 231   5                     }
+ 232   4                     break;
+ 233   4                  case IR_2:  // 旋转
+ 234   4                     Block_Rotate(temp_pos, temp_shape);
+ 235   4                     break;
+ 236   4                  case IR_5:  // 加速下落
+ 237   4                     Block_Land(temp_pos, temp_shape);
+ 238   4               }
+ 239   3               // 保持方向一直向下
+ 240   3               direction[0] = 0;
+C51 COMPILER V9.54   TETRIS                                                                09/04/2022 22:49:01 PAGE 5   
+
+ 241   3               direction[1] = -1;
+ 242   3            }
+ 243   2         }
+ 244   1      }
+ 245          
+ 246          // 随机数生成与LED矩阵刷新
+ 247          void Timer2_Routine() interrupt 5
+ 248          {
+ 249   1         static unsigned int Count = 0;
+ 250   1         TF2 = 0;
+ 251   1         RCAP2L  = 0x66;      
+ 252   1         RCAP2H = 0xFC; 
+ 253   1         ++Count;
+ 254   1         ++Random;
+ 255   1      
+ 256   1         if (Count % 10 == 0) {
+ 257   2            // 刷新LED矩阵
+ 258   2            MatrixLED_Loop(LED_buf);
+ 259   2         }
+ 260   1         else if (Count >= 307) {
+ 261   2            if (Start) {
+ 262   3               if (Move_Check(temp_pos, temp_shape, direction))
+ 263   3                  Block_Move(temp_pos, temp_shape, direction);
+ 264   3               else {
+ 265   4                  Check_Clear();
+ 266   4                  Generate_New_Block();
+ 267   4               }
+ 268   3            }
+ 269   2            Count = 0;  
+ 270   2         }
+ 271   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   2359    ----
+   CONSTANT SIZE    =    167    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     11      62
+   IDATA SIZE       =     72    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

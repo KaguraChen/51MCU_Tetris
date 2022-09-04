@@ -1,0 +1,74 @@
+C51 COMPILER V9.54   MATRIXLED                                                             08/10/2022 13:22:36 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MATRIXLED
+OBJECT MODULE PLACED IN .\Objects\MatrixLED.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE MatrixLED.c ROM(COMPACT) OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRI
+                    -NT(.\Listings\MatrixLED.lst) TABS(3) OBJECT(.\Objects\MatrixLED.obj)
+
+line level    source
+
+   1          #include <REGX52.H>
+   2          #include "Delay1ms.h"
+   3          
+   4          sbit RCK = P3 ^ 5;
+   5          sbit SCK = P3 ^ 6;
+   6          sbit SER = P3 ^ 4;
+   7          
+   8          #define MATRIX_LED_PORT P0
+   9          
+  10          void Matrix_Init()
+  11          {
+  12   1         SCK = 0;
+  13   1         RCK = 0;
+  14   1      }
+  15          
+  16          void _74HC595_WriteByte(unsigned char Byte)
+  17          {
+  18   1         unsigned char i;
+  19   1         for (i = 0; i < 8; ++i) {
+  20   2            SER = Byte & (0x80 >> i); 
+  21   2            SCK = 1; 
+  22   2            SCK = 0;
+  23   2         }
+  24   1         RCK = 1;
+  25   1         RCK = 0;
+  26   1      }
+  27          
+  28          void MatrixLED_ShowColumn(unsigned char Column, Data) 
+  29          {
+  30   1         _74HC595_WriteByte(Data);
+  31   1         MATRIX_LED_PORT = ~(0x80 >> Column);
+  32   1         Delay1ms(1);
+  33   1         MATRIX_LED_PORT = 0xFF;
+  34   1      }
+  35          
+  36          // 定时器扫描LED矩阵
+  37          void MatrixLED_Loop(unsigned char LED_buf[8][8])
+  38          {
+  39   1         unsigned char i, j, buf = 0;
+  40   1         for (i = 0; i < 8; ++i) {
+  41   2            for (j = 0; j < 8; ++j) {
+  42   3               if (LED_buf[i][j])
+  43   3                  buf |= (0x01 << j);
+  44   3            }
+  45   2            MatrixLED_ShowColumn(i, buf);
+  46   2            buf = 0x00;
+  47   2         }
+  48   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    173    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+C51 COMPILER V9.54   MATRIXLED                                                             08/10/2022 13:22:36 PAGE 2   
+
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       6
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

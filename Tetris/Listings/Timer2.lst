@@ -1,0 +1,50 @@
+C51 COMPILER V9.54   TIMER2                                                                08/10/2022 10:36:27 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE TIMER2
+OBJECT MODULE PLACED IN .\Objects\Timer2.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE Timer2.c ROM(COMPACT) OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(
+                    -.\Listings\Timer2.lst) TABS(3) OBJECT(.\Objects\Timer2.obj)
+
+line level    source
+
+   1          #include <REGX52.H>
+   2          
+   3          void Timer2_Init(void)     
+   4          {
+   5   1         T2MOD = 0;  
+   6   1         T2CON = 0;  
+   7   1         TL2 = 0x66; 
+   8   1         TH2 = 0xFC; 
+   9   1         ET2=1;
+  10   1         EA=1;
+  11   1         PT2=0;
+  12   1         RCAP2L  = 0x66;      
+  13   1         RCAP2H = 0xFC; 
+  14   1         TR2 = 1;    
+  15   1      }
+  16          
+  17          //void Timer2_Routine() interrupt 5
+  18          //{
+  19          // static unsigned int Count = 0;
+  20          // TF2 = 0;
+  21          // ++Count;
+  22          // if (Count >= 500) {
+  23          //    Count = 0;
+  24          //    
+  25          // }
+  26          //}
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     26    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

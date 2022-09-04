@@ -1,0 +1,1 @@
+"Tetris.c" ROM(COMPACT) OPTIMIZE (8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\Tetris.lst) TABS (3) OBJECT(.\Objects\Tetris.obj)
